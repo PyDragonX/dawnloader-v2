@@ -8,7 +8,11 @@ from ui.display import (
     display_info, 
     display_error, 
     display_success, 
-    select_device_and_os
+    select_device_and_os,
+    select_platform,
+    select_file_type,
+    get_url_input,
+    clear_screen
 )
 from utils.clipboard_monitor import ClipboardMonitor
 from core.engine import MediaDownloader
@@ -19,14 +23,16 @@ from InquirerPy import inquirer
 TOOL_VERSION = "1.1.0"
 
 def main():
+    # 1. Clear screen and show banner
     display_banner()
     
-    # Load or ask for device configuration
+    # 2. Load or ask for device configuration
     config = ConfigManager.load_config()
     if not config:
         device_type, os_type = select_device_and_os()
         ConfigManager.save_config(device_type, os_type)
         display_success(f"Configuration saved: {device_type} - {os_type}")
+        time.sleep(1)
     else:
         device_type = config.get("device_type")
         os_type = config.get("os_type")
@@ -40,48 +46,58 @@ def main():
             device_type, os_type = select_device_and_os()
             ConfigManager.save_config(device_type, os_type)
             display_success(f"Configuration updated: {device_type} - {os_type}")
+            time.sleep(1)
 
-    display_platforms_table()
-    
-    # Check for updates
+    # 3. Silent Update Check
     updater = AutoUpdater(TOOL_VERSION)
     updater.check_for_updates()
 
+    # 4. Initialize components
     monitor = ClipboardMonitor()
     downloader = MediaDownloader(device_type, os_type)
     
-    display_info("Starting smart clipboard monitor...")
-    display_info("Copy a link from YouTube, Instagram, Facebook, or TikTok to begin.")
-
     while True:
-        url = monitor.check_for_media_link()
-        if url:
-            display_info(f"Detected media link in clipboard: [bold cyan]{url}[/bold cyan]")
-            
-            action = inquirer.select(
-                message="Select action:",
-                choices=[
-                    "Download Video (MP4)",
-                    "Download Audio (MP3)",
-                    "Ignore Link",
-                    "Exit Tool"
-                ],
-                default="Download Video (MP4)"
-            ).execute()
-
-            if action == "Download Video (MP4)":
-                downloader.download(url, file_type="video")
-            elif action == "Download Audio (MP3)":
-                downloader.download(url, file_type="audio")
-            elif action == "Exit Tool":
-                display_info("Exiting PyDragonX. Goodbye!")
-                sys.exit(0)
-            else:
-                display_info("Link ignored.")
-            
-            monitor.last_clipboard_content = url
+        display_banner()
+        display_platforms_table()
         
-        time.sleep(2)
+        # 5. Professional Workflow: Platform -> File Type -> URL
+        platform = select_platform()
+        
+        if platform == "Exit":
+            display_info("Exiting PyDragonX. Goodbye!")
+            sys.exit(0)
+            
+        if platform == "Auto-Detect (Clipboard)":
+            display_info("Starting smart clipboard monitor...")
+            display_info("Copy a link from YouTube, Instagram, Facebook, or TikTok to begin.")
+            
+            # Clipboard monitoring loop
+            while True:
+                url = monitor.check_for_media_link()
+                if url:
+                    display_info(f"Detected link: [bold cyan]{url}[/bold cyan]")
+                    file_type_choice = select_file_type()
+                    file_type = "video" if "Video" in file_type_choice else "audio"
+                    downloader.download(url, file_type=file_type)
+                    monitor.last_clipboard_content = url
+                    
+                    if not inquirer.confirm(message="Continue monitoring clipboard?", default=True).execute():
+                        break
+                time.sleep(2)
+            continue
+
+        # Manual Input Workflow
+        file_type_choice = select_file_type()
+        file_type = "video" if "Video" in file_type_choice else "audio"
+        url = get_url_input()
+        
+        # 6. Execute Download
+        downloader.download(url, file_type=file_type, selected_platform=platform)
+        
+        # Ask to continue or exit
+        if not inquirer.confirm(message="Do you want to download another file?", default=True).execute():
+            display_info("Exiting PyDragonX. Goodbye!")
+            break
 
 if __name__ == "__main__":
     try:

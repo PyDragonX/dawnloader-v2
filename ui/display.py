@@ -1,3 +1,4 @@
+import os
 from rich.console import Console
 from rich.panel import Panel
 from rich.progress import Progress, BarColumn, TextColumn, TransferSpeedColumn, TimeRemainingColumn
@@ -6,7 +7,12 @@ from InquirerPy import inquirer
 
 console = Console()
 
+def clear_screen():
+    """Clears the terminal screen based on the OS."""
+    os.system('cls' if os.name == 'nt' else 'clear')
+
 def display_banner():
+    clear_screen()
     banner_text = """
 ██████╗ ██╗   ██╗██╗   ██╗ ██████╗  ██████╗ ████████╗ ██╗  ██╗
 ██╔══██╗██║   ██║██║   ██║██╔═══██╗██╔═══██╗╚══██╔══╝ ██║  ██║
@@ -54,6 +60,36 @@ def select_device_and_os():
         ).execute()
     
     return device_type, os_type
+
+def select_platform():
+    return inquirer.select(
+        message="Select Platform:",
+        choices=[
+            "YouTube",
+            "Instagram",
+            "Facebook",
+            "TikTok",
+            "Auto-Detect (Clipboard)",
+            "Exit"
+        ],
+        default="YouTube"
+    ).execute()
+
+def select_file_type():
+    return inquirer.select(
+        message="Select File Type:",
+        choices=[
+            "Video (MP4)",
+            "Audio (MP3)"
+        ],
+        default="Video (MP4)"
+    ).execute()
+
+def get_url_input():
+    return inquirer.text(
+        message="Paste the media link here:",
+        validate=lambda result: len(result) > 0 or "URL cannot be empty!"
+    ).execute()
 
 def get_progress_bar():
     return Progress(

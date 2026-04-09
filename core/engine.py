@@ -56,14 +56,23 @@ class MediaDownloader:
             progress.update(self.current_task_id, description="[bold green]Download Complete[/bold green]")
             self.current_task_id = None
 
-    def download(self, url, file_type='video'):
-        platform = self.detect_platform(url)
-        display_info(f"Detected Platform: [bold yellow]{platform}[/bold yellow]")
+    def download(self, url, file_type='video', selected_platform=None):
+        platform = selected_platform if selected_platform and selected_platform != "Auto-Detect (Clipboard)" else self.detect_platform(url)
+        display_info(f"Platform: [bold yellow]{platform}[/bold yellow]")
         
         download_path = self.paths['videos'] if file_type == 'video' else self.paths['music']
         os.makedirs(download_path, exist_ok=True)
         
         self.ydl_opts['outtmpl'] = os.path.join(download_path, '%(title)s.%(ext)s')
+        
+        # Audio conversion if MP3 is selected
+        if file_type == 'audio':
+            self.ydl_opts['format'] = 'bestaudio/best'
+            self.ydl_opts['postprocessors'].insert(0, {
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': '192',
+            })
         
         # Inject metadata credits
         self.ydl_opts['postprocessor_args'] = [

@@ -1,14 +1,16 @@
 import yt_dlp
 import os
 import re
-from ui.display import progress, console, display_error, display_success, display_info
+from ui.display import progress, console, display_error, display_success, display_info, display_warning
 from utils.config import ConfigManager
+from utils.dependency_checker import DependencyChecker
 
 class MediaDownloader:
     def __init__(self, device_type, os_type):
         self.device_type = device_type
         self.os_type = os_type
         self.paths = ConfigManager.get_paths(device_type, os_type)
+        self.ffmpeg_installed = DependencyChecker.check_ffmpeg()
         
         self.ydl_opts = {
             'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
@@ -20,10 +22,12 @@ class MediaDownloader:
             }],
             'quiet': True,
             'no_warnings': True,
+            'ignoreerrors': True,
         }
         self.current_task_id = None
 
     def detect_platform(self, url):
+        url = url.lower()
         if "youtube.com" in url or "youtu.be" in url:
             return "YouTube"
         elif "instagram.com" in url:
@@ -32,6 +36,12 @@ class MediaDownloader:
             return "Facebook"
         elif "tiktok.com" in url:
             return "TikTok"
+        elif "twitter.com" in url or "x.com" in url:
+            return "Twitter (X)"
+        elif "kwai.com" in url:
+            return "Kwai"
+        elif "soundcloud.com" in url:
+            return "SoundCloud"
         return "Unknown"
 
     def progress_hook(self, d):
@@ -58,7 +68,7 @@ class MediaDownloader:
 
     def download(self, url, file_type='video', selected_platform=None):
         platform = selected_platform if selected_platform and selected_platform != "Auto-Detect (Clipboard)" else self.detect_platform(url)
-        display_info(f"Platform: [bold yellow]{platform}[/bold yellow]")
+        display_info(f"Target Platform: [bold yellow]{platform}[/bold yellow]")
         
         download_path = self.paths['videos'] if file_type == 'video' else self.paths['music']
         os.makedirs(download_path, exist_ok=True)
@@ -68,11 +78,14 @@ class MediaDownloader:
         # Audio conversion if MP3 is selected
         if file_type == 'audio':
             self.ydl_opts['format'] = 'bestaudio/best'
-            self.ydl_opts['postprocessors'].insert(0, {
-                'key': 'FFmpegExtractAudio',
-                'preferredcodec': 'mp3',
-                'preferredquality': '192',
-            })
+            if self.ffmpeg_installed:
+                self.ydl_opts['postprocessors'].insert(0, {
+                    'key': 'FFmpegExtractAudio',
+                    'preferredcodec': 'mp3',
+                    'preferredquality': '192',
+                })
+            else:
+                display_warning("FFmpeg not found. Downloading in original audio format instead of MP3.")
         
         # Inject metadata credits
         self.ydl_opts['postprocessor_args'] = [

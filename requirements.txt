@@ -1,0 +1,5 @@
+yt-dlp
+rich
+InquirerPy
+pyperclip
+requests

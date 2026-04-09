@@ -24,8 +24,8 @@ PyDragonX is a powerful, professional-grade media downloader built with Python. 
 ### Setup
 1.  Clone the repository:
     ```bash
-    git clone https://github.com/PyDragonX/dawnloader-v2
-    cd dawnloader-v2
+    git clone https://github.com/PyDragonX/PyDragonX.git
+    cd PyDragonX
     ```
 2.  Install dependencies:
     ```bash

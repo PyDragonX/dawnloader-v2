@@ -9,7 +9,7 @@ progress = Progress(
     BarColumn(bar_width=None),
     "[progress.percentage]{task.percentage:>3.1f}%",
     "•",
-    TextColumn("[green]{task.fields.get(\'downloaded_size\', \'\')}[/green] / [cyan]{task.fields.get(\'total_size\', \'\')}[/cyan]"),
+    TextColumn("[green]{task.fields[downloaded_size]}[/green] / [cyan]{task.fields[total_size]}[/cyan]"),
     "•",
     TransferSpeedColumn(),
     "•",

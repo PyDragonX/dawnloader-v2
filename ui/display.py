@@ -2,20 +2,9 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.progress import Progress, BarColumn, TextColumn, TransferSpeedColumn, TimeRemainingColumn
 from rich.table import Table
+from InquirerPy import inquirer
 
 console = Console()
-progress = Progress(
-    TextColumn("[bold blue]{task.description}[/bold blue]"),
-    BarColumn(bar_width=None),
-    "[progress.percentage]{task.percentage:>3.1f}%",
-    "•",
-    TextColumn("[green]{task.fields[downloaded_size]}[/green] / [cyan]{task.fields[total_size]}[/cyan]"),
-    "•",
-    TransferSpeedColumn(),
-    "•",
-    TimeRemainingColumn(),
-    console=console,
-)
 
 def display_banner():
     banner_text = """
@@ -43,6 +32,44 @@ def display_platforms_table():
     table.add_row("TikTok", "✅", "✅", "✅ (No Watermark)")
 
     console.print(table)
+
+def select_device_and_os():
+    device_type = inquirer.select(
+        message="Select your device type:",
+        choices=["Phone", "Laptop/PC"],
+        default="Laptop/PC"
+    ).execute()
+
+    if device_type == "Phone":
+        os_type = inquirer.select(
+            message="Select your Phone OS:",
+            choices=["Android (Termux)", "iOS (iSH/Other)"],
+            default="Android (Termux)"
+        ).execute()
+    else:
+        os_type = inquirer.select(
+            message="Select your Laptop/PC OS:",
+            choices=["Windows", "Linux", "macOS"],
+            default="Windows"
+        ).execute()
+    
+    return device_type, os_type
+
+def get_progress_bar():
+    return Progress(
+        TextColumn("[bold blue]{task.description}[/bold blue]"),
+        BarColumn(bar_width=None),
+        "[progress.percentage]{task.percentage:>3.1f}%",
+        "•",
+        TextColumn("[green]{task.fields[downloaded_size]}[/green] / [cyan]{task.fields[total_size]}[/cyan]"),
+        "•",
+        TransferSpeedColumn(),
+        "•",
+        TimeRemainingColumn(),
+        console=console,
+    )
+
+progress = get_progress_bar()
 
 def display_info(message):
     console.print(f"[bold blue]INFO:[/bold blue] {message}")

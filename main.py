@@ -1,109 +1,93 @@
 #!/usr/bin/env python3
+"""PyDragonX application entry point."""
 
 import sys
 import time
-from ui.display import (
-    display_banner, 
-    display_platforms_table, 
-    display_info, 
-    display_error, 
-    display_success, 
-    display_warning,
-    select_device_and_os,
-    select_platform,
-    select_file_type,
-    get_url_input,
-    clear_screen
-)
-from utils.clipboard_monitor import ClipboardMonitor
-from core.engine import MediaDownloader
-from utils.updater import AutoUpdater
-from utils.config import ConfigManager
-from utils.dependency_checker import DependencyChecker
+
 from InquirerPy import inquirer
 
-TOOL_VERSION = "1.2.0"
+from core.engine import MediaDownloader
+from ui.display import (
+    clear_screen,
+    display_banner,
+    display_error,
+    display_info,
+    display_platforms_table,
+    display_success,
+    select_device_and_os,
+    select_file_type,
+    select_platform,
+    get_url_input,
+)
+from utils.clipboard_monitor import ClipboardMonitor
+from utils.config import ConfigManager
+from utils.dependency_checker import DependencyChecker
+from utils.updater import AutoUpdater
 
-def main():
-    # 1. Clear screen and show banner
+TOOL_VERSION = "2.0.0"
+
+
+def parse_file_choice(choice: str) -> tuple[str, str]:
+    if "Video" in choice:
+        return "video", "mp4"
+    return "audio", ("wav" if "WAV" in choice else "mp3")
+
+
+def download_from_clipboard(monitor: ClipboardMonitor, downloader: MediaDownloader) -> None:
+    display_info("Starting smart clipboard monitor… Copy a supported media link.")
+    while True:
+        url = monitor.check_for_media_link()
+        if url:
+            display_info(f"Detected link: [bold cyan]{url}[/bold cyan]")
+            choice = select_file_type()
+            file_type, codec = parse_file_choice(choice)
+            downloader.download(url, file_type=file_type, audio_codec=codec)
+            if not inquirer.confirm(message="Continue monitoring clipboard?", default=True).execute():
+                return
+        time.sleep(2)
+
+
+def main() -> None:
     display_banner()
-    
-    # 2. Dependency Check (FFmpeg)
     DependencyChecker.verify_all()
-    time.sleep(1)
+    time.sleep(0.5)
 
-    # 3. Load or ask for device configuration
     config = ConfigManager.load_config()
     if not config:
         device_type, os_type = select_device_and_os()
         ConfigManager.save_config(device_type, os_type)
         display_success(f"Configuration saved: {device_type} - {os_type}")
-        time.sleep(1)
     else:
-        device_type = config.get("device_type")
-        os_type = config.get("os_type")
+        device_type = config.get("device_type", "Laptop/PC")
+        os_type = config.get("os_type", "Linux")
         display_info(f"Running on: [bold cyan]{device_type} ({os_type})[/bold cyan]")
-        
-        change_config = inquirer.confirm(
-            message="[PyDragonX] Do you want to change device settings?",
-            default=False,
-        ).execute()
-        if change_config:
+        if inquirer.confirm(message="Do you want to change device settings?", default=False).execute():
             device_type, os_type = select_device_and_os()
             ConfigManager.save_config(device_type, os_type)
-            display_success(f"Configuration updated: {device_type} - {os_type}")
-            time.sleep(1)
 
-    # 4. Silent Update Check
-    updater = AutoUpdater(TOOL_VERSION)
-    updater.check_for_updates()
-
-    # 5. Initialize components
+    AutoUpdater(TOOL_VERSION).check_for_updates()
     monitor = ClipboardMonitor()
     downloader = MediaDownloader(device_type, os_type)
-    
+
     while True:
         display_banner()
         display_platforms_table()
-        
-        # 6. Professional Workflow: Platform -> File Type -> URL
         platform = select_platform()
-        
         if platform == "Exit":
             display_info("Exiting PyDragonX. Goodbye!")
-            sys.exit(0)
-            
+            return
         if platform == "Auto-Detect (Clipboard)":
-            display_info("Starting smart clipboard monitor...")
-            display_info("Copy a link from YouTube, Instagram, Facebook, TikTok, Twitter, or Kwai to begin.")
-            
-            # Clipboard monitoring loop
-            while True:
-                url = monitor.check_for_media_link()
-                if url:
-                    display_info(f"Detected link: [bold cyan]{url}[/bold cyan]")
-                    file_type_choice = select_file_type()
-                    file_type = "video" if "Video" in file_type_choice else "audio"
-                    downloader.download(url, file_type=file_type)
-                    monitor.last_clipboard_content = url
-                    
-                    if not inquirer.confirm(message="[PyDragonX] Continue monitoring clipboard?", default=True).execute():
-                        break
-                time.sleep(2)
+            download_from_clipboard(monitor, downloader)
             continue
 
-        # Manual Input Workflow
-        file_type_choice = select_file_type()
-        file_type = "video" if "Video" in file_type_choice else "audio"
+        choice = select_file_type()
+        file_type, codec = parse_file_choice(choice)
         url = get_url_input()
-        
-        # 7. Execute Download
-        downloader.download(url, file_type=file_type, selected_platform=platform)
-        
-        # Ask to continue or exit
-        if not inquirer.confirm(message="[PyDragonX] Do you want to download another file?", default=True).execute():
+        downloader.download(url, file_type=file_type, selected_platform=platform, audio_codec=codec)
+        if not inquirer.confirm(message="Download another file?", default=True).execute():
             display_info("Exiting PyDragonX. Goodbye!")
-            break
+            return
+
 
 if __name__ == "__main__":
     try:
@@ -111,6 +95,6 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         display_info("\nExiting PyDragonX. Goodbye!")
         sys.exit(0)
-    except Exception as e:
-        display_error(f"An unexpected error occurred: {e}")
+    except Exception as exc:
+        display_error(f"An unexpected error occurred: {exc}")
         sys.exit(1)

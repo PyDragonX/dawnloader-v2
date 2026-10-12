@@ -3,3 +3,4 @@ rich>=13.7.0
 InquirerPy>=0.3.4
 pyperclip>=1.8.2
 requests>=2.31.0
+certifi>=2024.2.2

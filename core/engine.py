@@ -9,7 +9,6 @@ from typing import Any
 import yt_dlp
 import certifi
 
-
 from ui.display import (
     console,
     display_error,
@@ -118,6 +117,7 @@ class MediaDownloader:
             "continuedl": True,
             "concurrent_fragment_downloads": 4,
             "socket_timeout": 30,
+            "ca_certs": certifi.where(),
             "progress_hooks": [self.progress_hook],
             "writethumbnail": False,
             "merge_output_format": "mp4" if file_type == "video" else None,

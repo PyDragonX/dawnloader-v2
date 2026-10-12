@@ -7,6 +7,8 @@ from pathlib import Path
 from typing import Any
 
 import yt_dlp
+import certifi
+
 
 from ui.display import (
     console,

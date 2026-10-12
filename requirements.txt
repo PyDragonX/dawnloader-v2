@@ -1,5 +1,5 @@
-yt-dlp
-rich
-InquirerPy
-pyperclip
-requests
+yt-dlp>=2025.01.01
+rich>=13.7.0
+InquirerPy>=0.3.4
+pyperclip>=1.8.2
+requests>=2.31.0

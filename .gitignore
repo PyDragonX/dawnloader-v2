@@ -1,0 +1,25 @@
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.env
+*.log
+*.part
+*.ytdl
+.DS_Store
+.vscode/
+.idea/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local user configuration
+.pydragonx_config.json
+
+# Downloaded media should never be committed
+Music/
+Videos/
+Downloads/
+storage/
